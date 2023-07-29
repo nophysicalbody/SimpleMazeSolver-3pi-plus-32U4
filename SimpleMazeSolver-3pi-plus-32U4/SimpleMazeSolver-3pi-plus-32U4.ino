@@ -32,22 +32,47 @@ Motors motors;
 #define NUM_SENSORS 5
 unsigned int lineSensorValues[NUM_SENSORS];
 
+/* 
+ * * * * * * * * * * * * * * * * * * * * * * *
+ * START SECTION: OPERATOR TUNING VALUES * * *
+ * * * Operator to only select profile below *
+ * * * * * * * * * * * * * * * * * * * * * * *
+ */
+
+int profile = 0;
+/* ------------------------------
+ * Profile | maxSpeed | turnSpeed
+ *    0    |    80    |    80
+ *    1    |    90    |    85
+ *    2    |   100    |    90
+ */
+
+ /* 
+ * * * * * * * * * * * * * * * * * * * * * * * *
+ * END SECTION: OPERATOR TUNING VALUES * * * * * 
+ * * * Operator to only select profile above * *
+ * * * * * * * * * * * * * * * * * * * * * * * *
+ */
+
+uint16_t maxSpeeds[3] = {80, 90, 100};
+uint16_t turnSpeeds[3] = {80, 85, 90};
+
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
 // the value of 200 here imposes a speed limit of 50%.
-
 // Note that making the 3pi+ go faster on a line following course
 // might involve more than just increasing this number; you will
 // often have to adjust the PID constants too for it to work well.
-uint16_t maxSpeed = 200;
+uint16_t maxSpeed = maxSpeeds[profile];
+
+// This is the speed the motors will run while turning
+uint16_t turnSpeed = turnSpeeds[profile];
+
+// Other tuning values
 int16_t minSpeed = 0;
-
 // This is the speed the motors will run when centered on the line.
-// Set to zero and set minSpeed to -maxSpeed to test the robot
-// without.
-uint16_t baseSpeed = 100;
-//uint16_t baseSpeed = 40; // run very slow for testing!!!
-
+uint16_t baseSpeed = maxSpeed;
+// This is the speed the motors will run while doing line sensor calibration
 uint16_t calibrationSpeed = 60;
 
 // PID configuration: This example is configured for a default
@@ -59,6 +84,7 @@ uint16_t calibrationSpeed = 60;
 
 uint16_t proportional = 64; // coefficient of the P term * 256
 uint16_t derivative = 256; // coefficient of the D term * 256
+//uint16_t derivative = 0; // coefficient of the D term * 256
 
 //// A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -163,28 +189,43 @@ void setup()
   // Play a little welcome song
   buzzer.play(">g32>>c32");
   delay(1500);
-  
-//  // Display battery voltage and wait for button press
-  while(!buttonB.getSingleDebouncedPress())
-  {
-    int bat = readBatteryMillivolts();
-    display.clear();
-    display.gotoXY(0, 0);
-    display.print(F("Batt volts:"));
-    display.gotoXY(0, 1);
-    display.print(bat);
-    display.print("mV");
-    display.gotoXY(0, 2);
-    display.print(F("Press B to"));
-    display.gotoXY(0, 3);
-    display.print(F("calibrate"));
-    delay(100);
-  }
 
+  // Display selected factors and profiles:
+  display.clear();
+  display.gotoXY(0, 0);
+  display.print(F("Profile "));
+  display.print(profile);
+  display.gotoXY(0, 1);
+  display.print(F("Speeds:"));
+  display.gotoXY(0, 2);
+  display.print(F("Base "));
+  display.print(baseSpeed);
+  display.gotoXY(0, 3);
+  display.print(F("Turn "));
+  display.print(turnSpeed);
+  delay(2500);
+  
+  // Display battery voltage and wait for button press
+  int bat = readBatteryMillivolts();
+  display.clear();
+  display.gotoXY(0, 0);
+  display.print(F("Batt volts:"));
+  display.gotoXY(0, 1);
+  display.print(bat);
+  display.print("mV");
+  display.gotoXY(0, 2);
+  display.print(F("Press B to"));
+  display.gotoXY(0, 3);
+  display.print(F("calibrate"));
+  while(!buttonB.getSingleDebouncedPress()) {}
+  
+  // Play a note so we know we've hit the button
+  buzzer.play(">>a32");
+  
   // Always wait for the button to be released so that 3pi doesn't
   // start moving until your hand is away from it.
   // In this case I'll just wait
-  delay(750);
+  delay(500);
   
   // Auto-calibration: turn right and left while calibrating the
   // sensors.
@@ -193,11 +234,7 @@ void setup()
   showReadings();
 
   // showreadings function exits when user presses B, let's start!
-  // Play music and wait for it to finish before we start driving.
-  buzzer.play("L16 cdegreg4");
-  while(buzzer.isPlaying());
-  display.clear();
-  display.print(F("Going..."));
+
 
 //  // Test for line follow function - run robot on single strip of tape and it will pace
 //  while (1)
@@ -277,17 +314,17 @@ void turn(unsigned char dir)
   {
   case 'L':
     // Turn left.
-    motors.setSpeeds(-80, 80);
+    motors.setSpeeds(-turnSpeed, turnSpeed);
     delay(250);
     break;
   case 'R':
     // Turn right.
-    motors.setSpeeds(80, -80);
+    motors.setSpeeds(turnSpeed, -turnSpeed);
     delay(250);
     break;
   case 'B':
     // Turn around.
-    motors.setSpeeds(80, -80);
+    motors.setSpeeds(turnSpeed, -turnSpeed);
     delay(500);
     break;
   case 'S':
@@ -464,6 +501,17 @@ bool pause_wait_for_button_press(unsigned long delay_length)
 void loop()
 {
   // Start "learning lap"
+  // Play music and wait for it to finish before we start driving.
+  buzzer.play("L16 cdegreg4");
+  display.clear();
+  display.print(F("Get ready"));
+  while(buzzer.isPlaying());
+  delay(1000);
+
+  display.clear();
+  display.gotoXY(4, 1);
+  display.print(F("GO!"));
+  buzzer.play(">>a32");
   start_timer();
   while (1)
   {
@@ -554,18 +602,26 @@ void loop()
       if (pause_wait_for_button_press(4000)) break;
       // Show the path for 3 seconds
       display_path();
+      display.gotoXY(0, 3);
+      display.print("B-continue");
       if (pause_wait_for_button_press(3000)) break;
     }
+    buzzer.play("L16 cdegreg4");
+    display.clear();
+    display.print(F("Get ready"));
+    while(buzzer.isPlaying());
+    delay(1000);
+  
     display.clear();
     display.gotoXY(0, 1);
     display.print("Re-running");
     display.gotoXY(0, 2);
     display.print("learned lap");
-    while (buttonB.isPressed());
-    delay(1000);
+    buzzer.play(">>a32");
 
     // Re-run the maze.  It's not necessary to identify the
     // intersections, so this loop is really simple.
+    buzzer.play(">>a32");
     start_timer();
     int i;
     for (i = 0; i < path_length; i++)
@@ -573,10 +629,8 @@ void loop()
       follow_segment();
 
       // Drive straight while slowing down, as before.
-      //OrangutanMotors::setSpeeds(50, 50);
       motors.setSpeeds(50, 50);
       delay(50);
-      //OrangutanMotors::setSpeeds(40, 40);
       motors.setSpeeds(40, 40);
       delay(200);
 
