@@ -160,6 +160,8 @@ void setup()
   display.print(F("3\xf7 Robot"));
   display.gotoXY(0, 2);
   display.print(F("Maze solver"));
+  // Play a little welcome song
+  buzzer.play(">g32>>c32");
   delay(1500);
   
 //  // Display battery voltage and wait for button press
@@ -318,20 +320,31 @@ void display_path()
   // are normally terminated in C.
   path[path_length] = 0;
 
-  // OrangutanLCD::clear();
   display.clear();
-  //OrangutanLCD::print(path);
+  display.gotoXY(0, 0);
+  display.print("Path found:");
+  display.gotoXY(0, 1);
   display.print(path);
 
   if (path_length > 8)
   {
-    //OrangutanLCD::gotoXY(0, 1);
-    display.gotoXY(0, 1);
-    //OrangutanLCD::print(path + 8);
+    display.gotoXY(0, 2);
     display.print(path + 8);
   }
 }
 
+void display_lap_time()
+{
+    display.clear();
+    display.print("Solved!");
+    display.gotoXY(0, 1);
+    display.print("Lap time:");
+    display.gotoXY(0, 2);
+    display.print(get_timer_value_millis());
+    display.print("ms");
+    display.gotoXY(0, 3);
+    display.print("B-continue");
+}
 // This function decides which way to turn during the learning phase of
 // maze solving.  It uses the variables found_left, found_straight, and
 // found_right, which indicate whether there is an exit in each of the
@@ -403,10 +416,55 @@ void simplify_path()
   path_length -= 2;
 }
 
+// Create a timer to use for measuring run times
+unsigned long start_time_millis = 0;
+unsigned long stop_time_millis = 0;
+void start_timer()
+{
+  start_time_millis = millis();
+}
+
+void stop_timer()
+{
+  stop_time_millis = millis();
+}
+
+unsigned long get_timer_value_millis()
+{
+  // Make sure both variables are going to give a sensible result
+  if (stop_time_millis > start_time_millis)
+  {
+    return stop_time_millis - start_time_millis;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+bool pause_wait_for_button_press(unsigned long delay_length)
+// This function waits for the requested number of milliseconds, returning true if button
+// is pressed and false if timer expires
+{
+  bool button_pressed = false;
+  for (int j = 0; j < delay_length/100; j++) {
+      if (buttonB.getSingleDebouncedPress())
+      {
+        button_pressed = true;
+        break;
+      } else {
+        delay(100);
+      }
+    }
+  return button_pressed;
+}
+
 // This function comprises the body of the maze-solving program.  It is called
 // repeatedly by the Arduino framework.
 void loop()
 {
+  // Start "learning lap"
+  start_timer();
   while (1)
   {
     follow_segment();
@@ -477,6 +535,7 @@ void loop()
   }
 
   // Solved the maze!
+  stop_timer();
 
   // Now enter an infinite loop - we can re-run the maze as many
   // times as we want to.
@@ -488,30 +547,26 @@ void loop()
 
     // Wait for the user to press a button, while displaying
     // the solution.
-    //while (!OrangutanPushbuttons::isPressed(BUTTON_B))
-    while(!buttonB.getSingleDebouncedPress())
+    while(1)
     {
-      if (millis() % 2000 < 1000)
-      {
-        //OrangutanLCD::clear();
-        display.clear();
-        //OrangutanLCD::print("Solved!");
-        display.print("Solved!");
-        //OrangutanLCD::gotoXY(0, 1);
-        display.gotoXY(0, 1);
-        //OrangutanLCD::print("Press B");
-        display.print("Press B");
-      }
-      else
-        display_path();
-      delay(30);
+      // Show lap time and prompt to re-run for 4 seconds
+      display_lap_time();
+      if (pause_wait_for_button_press(4000)) break;
+      // Show the path for 3 seconds
+      display_path();
+      if (pause_wait_for_button_press(3000)) break;
     }
+    display.clear();
+    display.gotoXY(0, 1);
+    display.print("Re-running");
+    display.gotoXY(0, 2);
+    display.print("learned lap");
     while (buttonB.isPressed());
-
     delay(1000);
 
     // Re-run the maze.  It's not necessary to identify the
     // intersections, so this loop is really simple.
+    start_timer();
     int i;
     for (i = 0; i < path_length; i++)
     {
@@ -534,5 +589,6 @@ void loop()
     follow_segment();
 
     // Now we should be at the finish!  Restart the loop.
+    stop_timer();
   }
 }
