@@ -45,7 +45,7 @@ int16_t minSpeed = 0;
 // This is the speed the motors will run when centered on the line.
 // Set to zero and set minSpeed to -maxSpeed to test the robot
 // without.
-uint16_t baseSpeed = maxSpeed;
+uint16_t baseSpeed = 100;
 //uint16_t baseSpeed = 40; // run very slow for testing!!!
 
 uint16_t calibrationSpeed = 60;
@@ -90,7 +90,10 @@ void printBar(uint8_t height)
 void calibrateSensors()
 {
   display.clear();
-  display.gotoXY(0, 0);
+  display.gotoXY(0, 1);
+  display.print(F("Calib in"));
+  display.gotoXY(0, 2);
+  display.print(F("progress..."));
 
   // Wait 1 second and then begin automatic sensor calibration
   // by rotating in place to sweep the sensors over the line
@@ -123,15 +126,19 @@ void showReadings()
     uint16_t position = lineSensors.readLineBlack(lineSensorValues);
 
     display.gotoXY(0, 0);
+    display.print("Pos: ");
     display.print(position);
     display.print("    ");
-    display.gotoXY(0, 1);
+    display.gotoXY(3, 1);
     for (uint8_t i = 0; i < NUM_SENSORS; i++)
     {
       uint8_t barHeight = map(lineSensorValues[i], 0, 1000, 0, 8);
       printBar(barHeight);
     }
-
+    display.gotoXY(3, 2);
+    display.print("L C R");
+    display.gotoXY(0, 3);
+    display.print("B: Start");
     delay(50);
   }
 }
@@ -141,47 +148,50 @@ void showReadings()
 // by the Arduino framework at the start of program execution.
 void setup()
 {
-  unsigned int counter; // used as a simple timer
-
+  // Load custom characters so the display works properly
+  loadCustomCharacters();
+  
+  // Increase resolution of OLED display
+  display.setLayout11x4();
   display.clear();
   display.gotoXY(0, 0);
   display.print(F("Pololu"));
   display.gotoXY(0, 1);
   display.print(F("3\xf7 Robot"));
-  buzzer.playFromProgramSpace(welcome);
-  
-  delay(1000);
-
-  display.clear();
-  display.print(F("Maze"));
-  display.gotoXY(0, 1);
-  display.print(F("Solver"));
-  delay(1000);
+  display.gotoXY(0, 2);
+  display.print(F("Maze solver"));
+  delay(1500);
   
 //  // Display battery voltage and wait for button press
   while(!buttonB.getSingleDebouncedPress())
   {
     int bat = readBatteryMillivolts();
     display.clear();
+    display.gotoXY(0, 0);
+    display.print(F("Batt volts:"));
+    display.gotoXY(0, 1);
     display.print(bat);
     display.print("mV");
-    display.gotoXY(0, 1);
-    display.print(F("Press B"));
+    display.gotoXY(0, 2);
+    display.print(F("Press B to"));
+    display.gotoXY(0, 3);
+    display.print(F("calibrate"));
     delay(100);
   }
 
   // Always wait for the button to be released so that 3pi doesn't
   // start moving until your hand is away from it.
   // In this case I'll just wait
-  delay(1500);
+  delay(750);
   
   // Auto-calibration: turn right and left while calibrating the
   // sensors.
+  display.clear();
   calibrateSensors();
   showReadings();
+
+  // showreadings function exits when user presses B, let's start!
   // Play music and wait for it to finish before we start driving.
-  display.clear();
-  display.print(F("Go!"));
   buzzer.play("L16 cdegreg4");
   while(buzzer.isPlaying());
   display.clear();
