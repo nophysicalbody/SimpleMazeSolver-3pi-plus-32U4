@@ -62,7 +62,7 @@ uint16_t llbraketwoSpeeds[3] =  {50,      52.5,     55};    // X10
 uint16_t llbraketwoDelays[3] =  {50,      52.5,     55};    // X11
 
 /* ******* MAZE SOLUTION ******* */
-String mazeSolution = String("SRRLR");
+String mazeSolution = String("SRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR");
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
@@ -619,15 +619,24 @@ void loop()
     // Wait for the user to press a button, while displaying
     // the solution.
     if (!maze_solution_is_correct()){
+      delay(500);
       display.clear();
-      display.gotoXY(0, 0);
-      display.print(F("Found wrong"));
-      display.gotoXY(0, 1);
-      display.print(F("solution!"));
       display.gotoXY(0, 2);
-      display.print(F("Abort test"));
+      display.print(F("WARNING"));
+      display.gotoXY(0, 1);
+      display.print(F("Found wrong"));
+      display.gotoXY(0, 2);
+      display.print(F("solution!!"));
       display.gotoXY(0, 3);
+      display.print(F("ABORT TEST"));
+      buzzer.play("L8 cba#ag#4");
+      delay(5000);
+    } else {
+      display.clear();
+      display.gotoXY(0, 2);
       display.print(F("Solution"));
+      display.gotoXY(0, 3);
+      display.print(F("correct!"));
       delay(1000);
     }
     while(1)
