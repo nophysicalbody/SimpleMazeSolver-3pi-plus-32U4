@@ -621,7 +621,7 @@ void loop()
     if (!maze_solution_is_correct()){
       delay(500);
       display.clear();
-      display.gotoXY(0, 2);
+      display.gotoXY(0, 0);
       display.print(F("WARNING"));
       display.gotoXY(0, 1);
       display.print(F("Found wrong"));
@@ -631,14 +631,8 @@ void loop()
       display.print(F("ABORT TEST"));
       buzzer.play("L8 cba#ag#4");
       delay(5000);
-    } else {
-      display.clear();
-      display.gotoXY(0, 2);
-      display.print(F("Solution"));
-      display.gotoXY(0, 3);
-      display.print(F("correct!"));
-      delay(1000);
     }
+    
     while(1)
     {
       // Show lap time and prompt to re-run for 4 seconds
