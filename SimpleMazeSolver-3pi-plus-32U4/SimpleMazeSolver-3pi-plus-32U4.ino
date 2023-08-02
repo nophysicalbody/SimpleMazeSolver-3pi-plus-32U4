@@ -48,21 +48,21 @@ int profile = 0;
  * * * * * * * * * * * * * * * * * * * * * * * *
  */
  
-/* ******************** PROFILE:  0        1         2  ****** */
-uint16_t maxSpeeds[3] =         {110,     120,      130};   // X1
-uint16_t turnSpeeds[3] =        {90,      95,       100};   // X2
-uint16_t angintSpeeds[3] =      {55,      57.5,     60};    // X3
-uint16_t angintDelays[3] =      {40,      42.5,     45};    // X4
-uint16_t interSpeeds[3] =       {40,      42.5,     45};    // X5
-uint16_t interDelays[3] =       {90,      100,      110};   // X6
-uint16_t turnDelays[3] =        {195,     200,      205};   // X7
-uint16_t llbrakeoneSpeeds[3] =  {75,      77.5,     80};    // X8
-uint16_t llbrakeoneDelays[3] =  {42.5,    45,       47.5};  // X9
-uint16_t llbraketwoSpeeds[3] =  {50,      52.5,     55};    // X10
-uint16_t llbraketwoDelays[3] =  {50,      52.5,     55};    // X11
+/* ******************** PROFILE:  0   1     2     3     4     5     6     7     8     9     10    11  ****** */
+uint16_t maxSpeeds[12]=         {130, 130,  130,  110,  130,  130,  110,  110,  110,  110,  110,  110};//X1
+uint16_t turnSpeeds[12]=        {90,  100,  100,  100,  90,   90,   90,   90,   100,  90,   90,   100};//X2
+uint16_t angintSpeeds[12]=      {60,  55,   55,   55,   60,   55,   55,   60,   60,   55,   60,   55};//X3
+uint16_t angintDelays[12]=      {45,  40,   40,   45,   45,   45,   45,   40,   40,   45,   45,   45};//X4
+uint16_t interSpeeds[12]=       {45,  45,   40,   40,   40,   45,   45,   40,   45,   45,   40,   40};//X5
+uint16_t interDelays[12]=       {110, 90,   90,   110,  110,  110,  90,   90,   110,  90,   110,  90};//X6
+uint16_t turnDelays[12]=        {195, 195,  195,  205,  195,  195,  195,  205,  195,  195,  205,  195};//X7
+uint16_t llbrakeoneSpeeds[12]=  {75,  75,   75,   80,   75,   80,   75,   80,   80,   75,   75,   80};//X8
+uint16_t llbrakeoneDelays[12]=  {47.5,42.5, 42.5, 47.5, 42.5, 47.5, 42.5, 42.5, 42.5, 47.5, 47.5, 42.5};//X9
+uint16_t llbraketwoSpeeds[12]=  {50,  55,   55,   55,   55,   50,   50,   55,   55,   55,   55,   55};//X10
+uint16_t llbraketwoDelays[12]=  {50,  55,   50,   55,   55,   55,   50,   55,   55,   50,   50,   55};//X11
 
 /* ******* MAZE SOLUTION ******* */
-String mazeSolution = String("SRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR");
+String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR");
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
