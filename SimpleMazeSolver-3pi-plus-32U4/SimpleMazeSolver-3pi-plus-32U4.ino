@@ -61,6 +61,8 @@ uint16_t llbrakeoneDelays[3] =  {42.5,    45,       47.5};  // X9
 uint16_t llbraketwoSpeeds[3] =  {50,      52.5,     55};    // X10
 uint16_t llbraketwoDelays[3] =  {50,      52.5,     55};    // X11
 
+/* ******* MAZE SOLUTION ******* */
+String mazeSolution = String("SRRLR");
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
@@ -348,7 +350,6 @@ void turn(unsigned char dir)
   }
 }
 
-
 // The path variable will store the path that the robot has taken.  It
 // is stored as an array of characters, each of which represents the
 // turn that should be made at one intersection in the sequence:
@@ -397,6 +398,13 @@ void display_lap_time()
     display.gotoXY(0, 3);
     display.print("B-continue");
 }
+
+// Function to test whether path matches our pre-programmed solution:
+bool maze_solution_is_correct(){
+  String pathFound = String(path);
+  return mazeSolution.equals(pathFound);
+}
+
 // This function decides which way to turn during the learning phase of
 // maze solving.  It uses the variables found_left, found_straight, and
 // found_right, which indicate whether there is an exit in each of the
@@ -610,6 +618,18 @@ void loop()
 
     // Wait for the user to press a button, while displaying
     // the solution.
+    if (!maze_solution_is_correct()){
+      display.clear();
+      display.gotoXY(0, 0);
+      display.print(F("Found wrong"));
+      display.gotoXY(0, 1);
+      display.print(F("solution!"));
+      display.gotoXY(0, 2);
+      display.print(F("Abort test"));
+      display.gotoXY(0, 3);
+      display.print(F("Solution"));
+      delay(1000);
+    }
     while(1)
     {
       // Show lap time and prompt to re-run for 4 seconds
