@@ -48,7 +48,7 @@ int profile = 0;
  * * * * * * * * * * * * * * * * * * * * * * * *
  */
  
-/* ------------------   PROFILE:  0        1         2  */
+/* ******************** PROFILE:  0        1         2  ****** */
 uint16_t maxSpeeds[3] =         {110,     120,      130};   // X1
 uint16_t turnSpeeds[3] =        {90,      95,       100};   // X2
 uint16_t angintSpeeds[3] =      {55,      57.5,     60};    // X3
@@ -138,7 +138,7 @@ void calibrateSensors()
 
   // Wait 1 second and then begin automatic sensor calibration
   // by rotating in place to sweep the sensors over the line
-  delay(1000);
+  delay(3000);
   uint16_t calibrationSpeed = 40;
   for(uint16_t i = 0; i < 80; i++)
   {
