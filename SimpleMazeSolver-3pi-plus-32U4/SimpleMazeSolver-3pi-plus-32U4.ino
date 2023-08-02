@@ -40,22 +40,27 @@ unsigned int lineSensorValues[NUM_SENSORS];
  */
 
 int profile = 0;
-/* ------------------------------
- * Profile | maxSpeed | turnSpeed
- *    0    |    80    |    80
- *    1    |    90    |    85
- *    2    |   100    |    90
- */
 
- /* 
+/*
  * * * * * * * * * * * * * * * * * * * * * * * *
  * END SECTION: OPERATOR TUNING VALUES * * * * * 
  * * * Operator to only select profile above * *
  * * * * * * * * * * * * * * * * * * * * * * * *
  */
+ 
+/* ------------------   PROFILE:  0        1         2  */
+uint16_t maxSpeeds[3] =         {110,     120,      130};   // X1
+uint16_t turnSpeeds[3] =        {90,      95,       100};   // X2
+uint16_t angintSpeeds[3] =      {55,      57.5,     60};    // X3
+uint16_t angintDelays[3] =      {40,      42.5,     45};    // X4
+uint16_t interSpeeds[3] =       {40,      42.5,     45};    // X5
+uint16_t interDelays[3] =       {90,      100,      110};   // X6
+uint16_t turnDelays[3] =        {195,     200,      205};   // X7
+uint16_t llbrakeoneSpeeds[3] =  {75,      77.5,     80};    // X8
+uint16_t llbrakeoneDelays[3] =  {42.5,    45,       47.5};  // X9
+uint16_t llbraketwoSpeeds[3] =  {50,      52.5,     55};    // X10
+uint16_t llbraketwoDelays[3] =  {50,      52.5,     55};    // X11
 
-uint16_t maxSpeeds[3] = {80, 90, 100};
-uint16_t turnSpeeds[3] = {80, 85, 90};
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
@@ -67,6 +72,16 @@ uint16_t maxSpeed = maxSpeeds[profile];
 
 // This is the speed the motors will run while turning
 uint16_t turnSpeed = turnSpeeds[profile];
+
+uint16_t angintSpeed = angintSpeeds[profile]; // Drive straight a bit in case we entered the intersection at an angle.
+uint16_t angintDelay = angintDelays[profile]; // Drive straight a bit in case we entered the intersection at an angle.
+uint16_t interSpeed = interSpeeds[profile];
+uint16_t interDelay = interDelays[profile]; // Intersection Motor Creep Run Delay
+uint16_t turnDelay = turnDelays[profile];
+uint16_t llbrakeoneSpeed = llbrakeoneSpeeds[profile]; // Learned Lap Braking Speed 1
+uint16_t llbrakeoneDelay = llbrakeoneDelays[profile]; // Duration at braked speed one
+uint16_t llbraketwoSpeed = llbraketwoSpeeds[profile]; // Learned Lap Braking Speed 2
+uint16_t llbraketwoDelay = llbraketwoDelays[profile]; // Duration at braked speed two
 
 // Other tuning values
 int16_t minSpeed = 0;
@@ -315,17 +330,17 @@ void turn(unsigned char dir)
   case 'L':
     // Turn left.
     motors.setSpeeds(-turnSpeed, turnSpeed);
-    delay(250);
+    delay(turnDelay);
     break;
   case 'R':
     // Turn right.
     motors.setSpeeds(turnSpeed, -turnSpeed);
-    delay(250);
+    delay(turnDelay);
     break;
   case 'B':
     // Turn around.
     motors.setSpeeds(turnSpeed, -turnSpeed);
-    delay(500);
+    delay(2 * turnDelay);
     break;
   case 'S':
     // Don't do anything!
@@ -521,8 +536,8 @@ void loop()
     // intersection at an angle.
     // Note that we are slowing down - this prevents the robot
     // from tipping forward too much.
-    motors.setSpeeds(50, 50);
-    delay(50);
+    motors.setSpeeds(angintSpeed, angintSpeed);
+    delay(angintDelay);
 
     // These variables record whether the robot has seen a line to the
     // left, straight ahead, and right, whil examining the current
@@ -544,8 +559,8 @@ void loop()
 
     // Drive straight a bit more - this is enough to line up our
     // wheels with the intersection.
-    motors.setSpeeds(40, 40);
-    delay(200);
+    motors.setSpeeds(interSpeed, interSpeed);
+    delay(interDelay);
 
     // Check for a straight exit.
     //robot.readLine(sensors, IR_EMITTERS_ON);
@@ -629,10 +644,10 @@ void loop()
       follow_segment();
 
       // Drive straight while slowing down, as before.
-      motors.setSpeeds(50, 50);
-      delay(50);
-      motors.setSpeeds(40, 40);
-      delay(200);
+      motors.setSpeeds(llbrakeoneSpeed, llbrakeoneSpeed);
+      delay(llbrakeoneDelay);
+      motors.setSpeeds(llbraketwoSpeed, llbraketwoSpeed);
+      delay(llbraketwoDelay);
 
       // Make a turn according to the instruction stored in
       // path[i].
