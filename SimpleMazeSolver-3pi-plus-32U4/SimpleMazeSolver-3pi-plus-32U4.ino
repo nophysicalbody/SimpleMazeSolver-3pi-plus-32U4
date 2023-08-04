@@ -672,8 +672,6 @@ void loop()
       if (pause_wait_for_button_press(4000)) break;
       // Show the path for 3 seconds
       display_path();
-      display.gotoXY(0, 3);
-      display.print("B-continue");
       if (pause_wait_for_button_press(3000)) break;
     }
     buzzer.play("L16 cdegreg4");
