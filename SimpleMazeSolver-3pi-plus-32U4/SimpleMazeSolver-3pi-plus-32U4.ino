@@ -62,7 +62,8 @@ uint16_t llbraketwoSpeeds[12]=  {50,  55,   55,   55,   55,   50,   50,   55,   
 uint16_t llbraketwoDelays[12]=  {50,  55,   50,   55,   55,   55,   50,   55,   55,   50,   50,   55};//X11
 
 /* ******* MAZE SOLUTION ******* */
-String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR");
+String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR"); // Our actual maze's solution
+//String mazeSolution = String("SRRLR"); // Robin's butcher's paper test maze solution
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
@@ -592,9 +593,9 @@ void loop()
     lineSensors.readLineBlack(sensors);
 
     // Check for left and right exits.
-    if (sensors[0] > 100)
+    if (sensors[0] > 200)
       found_left = 1;
-    if (sensors[4] > 100)
+    if (sensors[4] > 200)
       found_right = 1;
 
     // Drive straight a bit more - this is enough to line up our
@@ -605,7 +606,7 @@ void loop()
     // Check for a straight exit.
     //robot.readLine(sensors, IR_EMITTERS_ON);
     lineSensors.readLineBlack(sensors);
-    if (sensors[1] > 200 || sensors[2] > 200 || sensors[3] > 200)
+    if (sensors[1] > 300 || sensors[2] > 300 || sensors[3] > 300)
       found_straight = 1;
 
     // Check for the ending spot.
