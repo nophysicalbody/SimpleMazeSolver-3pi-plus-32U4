@@ -372,18 +372,37 @@ void display_path()
   // function can find the end of the string.  This is how strings
   // are normally terminated in C.
   path[path_length] = 0;
-
+  
+  // Set to a layout that can hold more characters!
+  display.setLayout21x8();
   display.clear();
   display.gotoXY(0, 0);
   display.print("Path found:");
   display.gotoXY(0, 1);
   display.print(path);
 
-  if (path_length > 8)
+  if (path_length > 21)
   {
     display.gotoXY(0, 2);
-    display.print(path + 8);
+    display.print(path + 21);
   }
+  if (path_length > 42)
+  {
+    display.gotoXY(0, 3);
+    display.print(path + 42);
+  }
+  if (path_length > 63)
+  {
+    display.gotoXY(0, 4);
+    display.print(path + 63);
+  }
+  if (path_length > 84)
+  {
+    display.gotoXY(0, 5);
+    display.print(path + 84);
+  }
+  // Reset to the display layout used by the rest of the display functions
+  display.setLayout11x4();
 }
 
 void display_lap_time()
@@ -523,6 +542,19 @@ bool pause_wait_for_button_press(unsigned long delay_length)
 // repeatedly by the Arduino framework.
 void loop()
 {
+  /*
+   * For testing only
+   */
+//  for(int i = 0; i < 57; i++){
+//    path[i]=char(i+65);
+//    path_length++;
+//  }
+//  // Display the path on the LCD.
+//  display_path();
+//  delay(10000);
+  /*
+   * End testing
+   */
   // Start "learning lap"
   // Play music and wait for it to finish before we start driving.
   buzzer.play("L16 cdegreg4");
