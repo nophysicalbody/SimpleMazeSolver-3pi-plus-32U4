@@ -39,7 +39,7 @@ unsigned int lineSensorValues[NUM_SENSORS];
  * * * * * * * * * * * * * * * * * * * * * * *
  */
 
-int profile = 0;
+int selected_run = 1;
 
 /*
  * * * * * * * * * * * * * * * * * * * * * * * *
@@ -47,7 +47,9 @@ int profile = 0;
  * * * Operator to only select profile above * *
  * * * * * * * * * * * * * * * * * * * * * * * *
  */
- 
+
+int profile = selected_run - 1;
+
 /* ******************** PROFILE:  0   1     2       3       4       5     6     7     8     9     10    11  ****** */
 uint16_t maxSpeeds[12]        = {120, 120,120,120,120,120,130,130,130,130,130,130};  // X1
 uint16_t turnSpeeds[12]       = {95,  95,95,100,100,100,95,95,95,100,100,100};  // X2
@@ -212,8 +214,8 @@ void setup()
   // Display selected factors and profiles:
   display.clear();
   display.gotoXY(0, 0);
-  display.print(F("Profile "));
-  display.print(profile);
+  display.print(F("Run "));
+  display.print(selected_run);
   display.gotoXY(0, 1);
   display.print(F("Speeds:"));
   display.gotoXY(0, 2);
