@@ -27,6 +27,7 @@ ButtonC buttonC;
 LineSensors lineSensors;
 BumpSensors bumpSensors;
 Motors motors;
+Encoders encoders;
 
 
 #define NUM_SENSORS 5
