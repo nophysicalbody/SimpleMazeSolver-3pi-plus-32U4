@@ -52,8 +52,8 @@ int selected_run = 1;
 int profile = selected_run - 1;
 
 /* ******************** PROFILE:  0   1     2       3       4       5     6     7     8     9     10    11  ****** */
-uint16_t maxSpeeds[12]        = {120, 120,120,120,120,120,130,130,130,130,130,130};  // X1
-uint16_t turnSpeeds[12]       = {95,  95,95,100,100,100,95,95,95,100,100,100};  // X2
+uint16_t maxSpeeds[12]        = {450, 120,120,120,120,120,130,130,130,130,130,130};  // X1
+uint16_t turnSpeeds[12]       = {100,  95,95,100,100,100,95,95,95,100,100,100};  // X2
 uint16_t angintSpeeds[12]     = {58,  58,61,58,61,61,61,61,58,61,58,58};  // X3
 uint16_t angintDelays[12]     = {37.5,37.5,40,40,37.5,40,40,37.5,40,37.5,40,37.5};  // X4
 uint16_t interSpeeds[12]      = {37.5,37.5,40,40,40,37.5,37.5,40,40,37.5,37.5,40};  // X5
@@ -75,10 +75,13 @@ String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR"); // Our actual 
 // Note that making the 3pi+ go faster on a line following course
 // might involve more than just increasing this number; you will
 // often have to adjust the PID constants too for it to work well.
-uint16_t maxSpeed = maxSpeeds[profile];
+
+//uint16_t maxSpeed = maxSpeeds[profile];
+double maxSpeed = 450;
 
 // This is the speed the motors will run while turning
-uint16_t turnSpeed = turnSpeeds[profile];
+//uint16_t turnSpeed = turnSpeeds[profile];
+double turnSpeed = 356;
 
 uint16_t angintSpeed = angintSpeeds[profile]; // Drive straight a bit in case we entered the intersection at an angle.
 uint16_t angintDelay = angintDelays[profile]; // Drive straight a bit in case we entered the intersection at an angle.
@@ -104,8 +107,9 @@ uint16_t calibrationSpeed = 60;
 // for your particular 3pi+ and line course, especially if you
 // increase the speed.
 
-uint16_t proportional = 64; // coefficient of the P term * 256
-uint16_t derivative = 256; // coefficient of the D term * 256
+//uint16_t proportional = 64; // coefficient of the P term * 256
+uint16_t proportional = 240; // coefficient of the P term * 256
+uint16_t derivative = 960; // coefficient of the D term * 256
 //uint16_t derivative = 0; // coefficient of the D term * 256
 
 //// A couple of simple tunes, stored in program space.
@@ -146,21 +150,23 @@ void calibrateSensors()
   // Wait 1 second and then begin automatic sensor calibration
   // by rotating in place to sweep the sensors over the line
   delay(3000);
-  uint16_t calibrationSpeed = 40;
+  double calibrationSpeed = 150;
   for(uint16_t i = 0; i < 80; i++)
   {
     if (i > 20 && i <= 60)
     {
-      motors.setSpeeds(-(int16_t)calibrationSpeed, calibrationSpeed);
+      //motors.setSpeeds(-(int16_t)calibrationSpeed, calibrationSpeed);
+      setWheelVelsMmPerSec(-calibrationSpeed, calibrationSpeed);
     }
     else
     {
-      motors.setSpeeds(calibrationSpeed, -(int16_t)calibrationSpeed);
+      //motors.setSpeeds(calibrationSpeed, -(int16_t)calibrationSpeed);
+      setWheelVelsMmPerSec(calibrationSpeed, -calibrationSpeed);
     }
 
     lineSensors.calibrate();
   }
-  motors.setSpeeds(0, 0);
+  setWheelVelsMmPerSec(0, 0);
 }
 
 // Displays the estimated line position and a bar graph of sensor
@@ -196,6 +202,10 @@ void showReadings()
 // by the Arduino framework at the start of program execution.
 void setup()
 {
+  // Set up interrupts for motor control
+  pinMode(LED_BUILTIN, OUTPUT);
+  setupMotorPIDs();
+
   // Load custom characters so the display works properly
   loadCustomCharacters();
   
@@ -209,7 +219,7 @@ void setup()
   display.gotoXY(0, 2);
   display.print(F("Maze solver"));
   // Play a little welcome song
-  buzzer.play(">g32>>c32");
+  //buzzer.play(">g32>>c32");
   delay(1500);
 
   // Display selected factors and profiles:
@@ -242,7 +252,7 @@ void setup()
   while(!buttonB.getSingleDebouncedPress()) {}
   
   // Play a note so we know we've hit the button
-  buzzer.play(">>a32");
+  //buzzer.play(">>a32");
   
   // Always wait for the button to be released so that 3pi doesn't
   // start moving until your hand is away from it.
@@ -258,13 +268,22 @@ void setup()
   // showreadings function exits when user presses B, let's start!
 
 
-//  // Test for line follow function - run robot on single strip of tape and it will pace
-//  while (1)
-//  {
-//    // Pace
-//    follow_segment();
-//    turn('B');
-//  }
+ // Test for line follow function - run robot on single strip of tape and it will pace
+ while (1)
+ {
+   // Pace
+   follow_segment();
+   turn('B');
+   setWheelVelsMmPerSec(0,0);
+//     setWheelVelsMmPerSec(-200,200);
+//     delay(3000);
+//     setWheelVelsMmPerSec(0,0);
+//     delay(3000);
+//     setWheelVelsMmPerSec(200,-200);
+//     delay(3000);
+//     setWheelVelsMmPerSec(0,0);
+    delay(3000);
+ }
 //  motors.setSpeeds(0, 0);
 }
 
@@ -295,8 +314,10 @@ void follow_segment()
   
     // Get individual motor speeds.  The sign of speedDifference
     // determines if the robot turns left or right.
-    int16_t leftSpeed = (int16_t)baseSpeed + speedDifference;
-    int16_t rightSpeed = (int16_t)baseSpeed - speedDifference;
+    //int16_t leftSpeed = (int16_t)baseSpeed + speedDifference;
+    double leftSpeed = baseSpeed + speedDifference;
+    //int16_t rightSpeed = (int16_t)baseSpeed - speedDifference;
+    double rightSpeed = baseSpeed - speedDifference;
   
     // Constrain our motor speeds to be between 0 and maxSpeed.
     // One motor will always be turning at maxSpeed, and the other
@@ -304,10 +325,11 @@ void follow_segment()
     // else it will be stationary.  For some applications, you
     // might want to allow the motor speed to go negative so that
     // it can spin in reverse.
-    leftSpeed = constrain(leftSpeed, minSpeed, (int16_t)maxSpeed);
-    rightSpeed = constrain(rightSpeed, minSpeed, (int16_t)maxSpeed);
+    leftSpeed = constrain(leftSpeed, minSpeed, maxSpeed);
+    rightSpeed = constrain(rightSpeed, minSpeed, maxSpeed);
   
-    motors.setSpeeds(leftSpeed, rightSpeed);
+    //motors.setSpeeds(leftSpeed, rightSpeed);
+    setWheelVelsMmPerSec(leftSpeed, rightSpeed);
     // We use the inner three sensors (1, 2, and 3) for
     // determining whether there is a line straight ahead, and the
     // sensors 0 and 4 for detecting lines going to the left and
@@ -323,6 +345,7 @@ void follow_segment()
       // Found an intersection.
       return;
     }
+    delay(50); // give the ISR a chance to work here
   }
 }
 
@@ -336,17 +359,21 @@ void turn(unsigned char dir)
   {
   case 'L':
     // Turn left.
-    motors.setSpeeds(-turnSpeed, turnSpeed);
+    //motors.setSpeeds(-turnSpeed, turnSpeed);
+    setWheelVelsMmPerSec(-turnSpeed, turnSpeed);
     delay(turnDelay);
     break;
   case 'R':
     // Turn right.
-    motors.setSpeeds(turnSpeed, -turnSpeed);
+    //motors.setSpeeds(turnSpeed, -turnSpeed);
+    setWheelVelsMmPerSec(turnSpeed, -turnSpeed);
     delay(turnDelay);
+
     break;
   case 'B':
     // Turn around.
-    motors.setSpeeds(turnSpeed, -turnSpeed);
+    //motors.setSpeeds(turnSpeed, -turnSpeed);
+    setWheelVelsMmPerSec(turnSpeed, -turnSpeed);
     delay(2 * turnDelay);
     break;
   case 'S':
