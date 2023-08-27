@@ -12,10 +12,23 @@ ButtonC buttonC;
 // with a black and green LCD display:
 OLED display;
 
-// Configuration for step response test:
+// **************************************************************************
+// ********** Tester configurable values below ******************************
+// **************************************************************************
+// Step response test:
 const int16_t step_resp_speed = 40;
 const int16_t test_duration_ms = 1000;
 const int16_t test_sample_period_ms = 10;
+// Linearity test
+const int16_t min_speed = -400; // Lowest speed
+const int16_t max_speed = 400; // Highest speed
+const int16_t speed_increment = 40; // Step size between them
+const int16_t warm_up_time_ms = 100; // Time given for motor speed to settle before starting measurement
+const int16_t linearity_test_duration_ms = 400; // Time motor is kept at test speed during measurement
+
+// **************************************************************************
+// ********** End tester configurable values ********************************
+// **************************************************************************
 
 // Variables for performing the step test:
 const int16_t log_length = test_duration_ms / test_sample_period_ms;
@@ -127,6 +140,95 @@ void printLogToSerialPort() {
   }
 }
 
+// Initialise variables to perform linearity test:
+const int16_t lin_log_length = 1 + ((max_speed - min_speed) / speed_increment);
+int16_t linearity_log_step_delta_left[lin_log_length] = {};
+int16_t linearity_log_step_delta_right[lin_log_length] = {};
+int16_t startCountsLeft;
+int16_t startCountsRight;
+int16_t endCountsLeft;
+int16_t endCountsRight;
+
+void performLinearityTest() {
+  int i_log = 0;
+  int16_t speed_value = min_speed; // Start with lowest (negative) speed, work up to highest positive speed
+
+  // Give the robot an extra chance to reach steady state in first speed, given it's full reverse
+  motors.setSpeeds(speed_value, speed_value);
+  delay(warm_up_time_ms);
+
+  while (i_log < lin_log_length) {
+    // Set motors to desired speed
+    speed_value = min_speed + (i_log * speed_increment);
+    motors.setSpeeds(speed_value, speed_value);
+    // Wait a short while for speed to settle
+    delay(warm_up_time_ms);
+
+    // Record left & right encoder values
+    startCountsLeft = encoders.getCountsLeft();
+    startCountsRight = encoders.getCountsRight();
+
+    // Wait for some time
+    delay(linearity_test_duration_ms);
+
+    // Record left and right encoder values
+    endCountsLeft = encoders.getCountsLeft();
+    endCountsRight = encoders.getCountsRight();
+    linearity_log_step_delta_left[i_log] = endCountsLeft - startCountsLeft;
+    linearity_log_step_delta_right[i_log] = endCountsRight - startCountsRight;
+
+    // No point in stopping the motors here, we'll move to a similar speed very shortly
+
+    // Increment iterator
+    i_log++;
+  }
+
+  // Testing complete - stop motors
+  motors.setSpeeds(0, 0);
+
+  // Print results
+  Serial.print("\n\n");
+  for (int h = 0; h < 40; h++) {Serial.print("-");} Serial.print("\n");
+  Serial.println("LINEARITY TEST");
+  for (int h = 0; h < 40; h++) {Serial.print("-");} Serial.print("\n");
+
+  // Print data headers:
+  Serial.print("MtrCmd"); Serial.print("\t");
+  Serial.print("L-steps"); Serial.print("\t");
+  Serial.print("L-r/s"); Serial.print("\t");
+  Serial.print("L-mm/s"); Serial.print("\t");
+  Serial.print("R-steps"); Serial.print("\t");
+  Serial.print("R-r/s"); Serial.print("\t");
+  Serial.print("R-mm/s"); Serial.print("\n");
+
+  i_log = 0;
+  while (i_log < lin_log_length) {
+    // Print commanded speed
+    Serial.print(min_speed + (i_log * speed_increment)); Serial.print("\t");
+
+    // Print left step delta
+    Serial.print(linearity_log_step_delta_left[i_log]); Serial.print("\t");
+    // Calculate and print left rotations/sec
+    rev_per_sec = (float)linearity_log_step_delta_left[i_log] / (358.3 * ((float)linearity_test_duration_ms / 1000) );
+    Serial.print(rev_per_sec); Serial.print("\t");
+    // Calculate and print left mm/sec
+    mm_per_sec = rev_per_sec * 100.5;
+    Serial.print(mm_per_sec, 1); Serial.print("\t");
+
+    // Print right step delta
+    Serial.print(linearity_log_step_delta_right[i_log]); Serial.print("\t");
+    // Calculate and print right rotations/sec
+    rev_per_sec = (float)linearity_log_step_delta_right[i_log] / (358.3 * ((float)linearity_test_duration_ms / 1000) );
+    Serial.print(rev_per_sec); Serial.print("\t");
+    // Calculate and print left mm/sec
+    mm_per_sec = rev_per_sec * 100.5;
+    Serial.print(mm_per_sec, 1); Serial.print("\n");
+
+    i_log++;
+  }
+
+}
+
 void setup()
 {
   // Setup serial port for printing results at 9600 baud
@@ -168,6 +270,8 @@ void setup()
   delay(250);
 
   // Perform linearity test
+  display.clear(); display.gotoXY(1, 0); display.print("Linearity"); display.gotoXY(1, 1); display.print("Test");
+  performLinearityTest();
 
 }
 
