@@ -21,6 +21,7 @@ const int16_t test_sample_period_ms = 10;
 const int16_t log_length = test_duration_ms / test_sample_period_ms;
 int16_t step_response_log[log_length] = {};
 
+// Function for performing step test on left motor.
 void performStepTestLeft(int16_t test_motor_speed ) {
   // Record start time
   unsigned long time_to_perform_next_sample_ms = millis();
@@ -52,7 +53,40 @@ void performStepTestLeft(int16_t test_motor_speed ) {
   Serial.print(test_motor_speed); Serial.print("]\n");
   for (int h = 0; h < 40; h++) {Serial.print("-");} Serial.print("\n");
   printLogToSerialPort();
+}
 
+// Function for performing step test on right motor. Exactly the same as left except uses right function calls.
+void performStepTestRight(int16_t test_motor_speed ) {
+  // Record start time
+  unsigned long time_to_perform_next_sample_ms = millis();
+  // Initialise iterator for log
+  int i_log = 0;
+
+  // Switch on the left motor
+  motors.setSpeeds(0, test_motor_speed);
+
+  // Start recording left encoder values
+  while (i_log < log_length) {
+    // Wait for the correct time to take a sample
+    while (millis() < time_to_perform_next_sample_ms) { }
+    // Record encoder value
+    step_response_log[i_log] = encoders.getCountsRight();
+    // Increment iterator
+    i_log++;
+    // Update this variable to schedule when we'll take the next recording
+    time_to_perform_next_sample_ms += test_sample_period_ms;
+  }
+
+  // Switch off the motor
+  motors.setSpeeds(0, 0);
+
+  // Print header
+  Serial.print("\n\n");
+  for (int h = 0; h < 40; h++) {Serial.print("-");} Serial.print("\n");
+  Serial.print("RIGHT STEP TEST - MOTOR COMMAND is [");
+  Serial.print(test_motor_speed); Serial.print("]\n");
+  for (int h = 0; h < 40; h++) {Serial.print("-");} Serial.print("\n");
+  printLogToSerialPort();
 }
 
 int16_t step_delta;
@@ -124,8 +158,14 @@ void setup()
   delay(250);
 
   // Perform right step response forward direction & print results
+  display.clear(); display.gotoXY(1, 0); display.print("Right step"); display.gotoXY(1, 1); display.print("Forward");
+  performStepTestRight(step_resp_speed);
+  delay(250);
 
   // Perform right step response reverse direction & print results
+  display.clear(); display.gotoXY(1, 0); display.print("Right step"); display.gotoXY(1, 1); display.print("Reverse");
+  performStepTestRight(-step_resp_speed);
+  delay(250);
 
   // Perform linearity test
 
