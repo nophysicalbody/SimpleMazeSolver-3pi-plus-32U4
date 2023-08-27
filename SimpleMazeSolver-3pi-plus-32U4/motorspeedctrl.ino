@@ -1,7 +1,7 @@
 #include <PID_v1.h>
 
 // Set the loop time period, in seconds:
-#define MOTOR_CTRL_LOOP_PERIOD_SEC 0.025
+#define MOTOR_CTRL_LOOP_PERIOD_SEC 0.05
 
 // Set the motor controller tunings:
 #define P_GAIN 0.00
