@@ -1,4 +1,5 @@
 #include <PID_v1.h>
+#include "RunningAverage.h"
 
 // Timer3 interrupt service routine (this runs at the periodicity defined in MOTOR_CTRL_LOOP_PERIOD_SEC)
 ISR (TIMER3_COMPA_vect) {
@@ -62,6 +63,9 @@ volatile PID LmotorPID(&L_current_speed_mm_per_sec, &L_PID_controller_output, &L
 volatile PID RmotorPID(&R_current_speed_mm_per_sec, &R_PID_controller_output, &R_desired_speed_mm_per_sec, P_GAIN, I_GAIN, D_GAIN, DIRECT);
 volatile int16_t L_feedforward = 0; volatile int16_t R_feedforward = 0;
 
+// Running average object for filtering noisy speed data
+RunningAverage LeftSpeedRunningAverage(VEL_FILTER_ROLLING_AVG_BUFFER_SIZE);
+RunningAverage RightSpeedRunningAverage(VEL_FILTER_ROLLING_AVG_BUFFER_SIZE);
 
 void setupMotorPIDs(){
   // Use timer 3, as timer 1 is used for something on the 3pi+.
@@ -77,6 +81,14 @@ void setupMotorPIDs(){
 
   // Also set up the LED, will use this to blink indicating that the ISR is running
   pinMode(LED_BUILTIN, OUTPUT);
+
+  // Explicitly clear the running average
+  LeftSpeedRunningAverage.clear();
+  RightSpeedRunningAverage.clear();
+}
+
+double getLeftPIDoutput() {
+  return L_motor_output;
 }
 
 void motorControlLoop(){
@@ -86,8 +98,13 @@ void motorControlLoop(){
   L_previous_encoder_count = L_current_counts; R_previous_encoder_count = R_current_counts; // update for next time
 
   // Take count delta, divide by 358.3 (counts/rev) to get revolutions, then multiply by 100.5 (mm/rotation) to get mm, then divide by time period
-  L_current_speed_mm_per_sec = (double)L_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC); 
-  R_current_speed_mm_per_sec = (double)R_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC); 
+  //   L_current_speed_mm_per_sec = (double)L_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC);
+  //   R_current_speed_mm_per_sec = (double)R_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC);
+  LeftSpeedRunningAverage.addValue((double)L_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC));
+  RightSpeedRunningAverage.addValue((double)R_count_delta * 100.5 / (358.3 * MOTOR_CTRL_LOOP_PERIOD_SEC));
+  L_current_speed_mm_per_sec = LeftSpeedRunningAverage.getAverage();
+  R_current_speed_mm_per_sec = RightSpeedRunningAverage.getAverage();
+
   
   // PID looks at current_speed_mm_per_sec and L_desired_speed_mm_per_sec and sets PID_controller_output
   LmotorPID.Compute(); RmotorPID.Compute();
