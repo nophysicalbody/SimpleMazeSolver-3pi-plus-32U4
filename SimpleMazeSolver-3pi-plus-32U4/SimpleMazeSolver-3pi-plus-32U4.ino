@@ -17,6 +17,7 @@
 
 // The following libraries will be needed by this demo
 #include <Pololu3piPlus32U4.h>
+#include <EEPROM.h>
 using namespace Pololu3piPlus32U4;
 
 OLED display;
@@ -39,7 +40,8 @@ unsigned int lineSensorValues[NUM_SENSORS];
  * * * * * * * * * * * * * * * * * * * * * * *
  */
 
-int selected_run = 1;
+// This is now set inside setProfile function
+int profile;
 
 /*
  * * * * * * * * * * * * * * * * * * * * * * * *
@@ -48,25 +50,10 @@ int selected_run = 1;
  * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
-int profile = selected_run - 1;
+/* ******************* PROFILE: 0    1     2     3     4     5     6     7     8        */
+uint16_t maxSpeeds[9]        = {120, 120,  120,  130,  130,  130,  140,  140,  140};
+uint16_t turnSpeeds[9]       = {90,  95,   100,  90,   95,   100,  90,   95,   100};
 
-/* ******************** PROFILE:  0   1     2       3       4       5     6     7     8     9     10    11  ****** */
-uint16_t maxSpeeds[12]        = {120, 120,120,120,120,120,130,130,130,130,130,130};  // X1
-uint16_t turnSpeeds[12]       = {95,  95,95,100,100,100,95,95,95,100,100,100};  // X2
-uint16_t angintSpeeds[12]     = {58,  58,61,58,61,61,61,61,58,61,58,58};  // X3
-uint16_t angintDelays[12]     = {37.5,37.5,40,40,37.5,40,40,37.5,40,37.5,40,37.5};  // X4
-uint16_t interSpeeds[12]      = {37.5,37.5,40,40,40,37.5,37.5,40,40,37.5,37.5,40};  // X5
-uint16_t interDelays[12]      = {90,  95,90,90,95,95,90,95,95,90,95,90};  // X6
-uint16_t turnDelays[12]       = {200, 202.5,200,202.5,200,202.5,202.5,202.5,200,200,200,202.5};  // X7
-uint16_t llbrakeoneSpeeds[12] = {70,  80,70,80,80,70,80,70,80,80,70,70};  // X8
-uint16_t llbrakeoneDelays[12] = {37.5,42.5,42.5,37.5,37.5,42.5,37.5,37.5,42.5,42.5,37.5,42.5}; // X9
-uint16_t llbraketwoSpeeds[12] = {50,  55,55,50,55,50,55,50,50,50,55,55};  // X10
-uint16_t llbraketwoDelays[12] = {50,  55,55,55,50,50,50,55,50,55,55,50};  // X11
-
-
-/* ******* MAZE SOLUTION ******* */
-String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR"); // Our actual maze's solution
-//String mazeSolution = String("SRRLR"); // Robin's butcher's paper test maze solution
 
 // This is the maximum speed the motors will be allowed to turn.
 // A maxSpeed of 400 would let the motors go at top speed, but
@@ -74,25 +61,25 @@ String mazeSolution = String("RRRLSLRRSLLSRRLRRLRRSLLSRRLSLRRR"); // Our actual 
 // Note that making the 3pi+ go faster on a line following course
 // might involve more than just increasing this number; you will
 // often have to adjust the PID constants too for it to work well.
-uint16_t maxSpeed = maxSpeeds[profile];
+uint16_t maxSpeed;// = maxSpeeds[profile];
 
 // This is the speed the motors will run while turning
-uint16_t turnSpeed = turnSpeeds[profile];
+uint16_t turnSpeed;// = turnSpeeds[profile];
 
-uint16_t angintSpeed = angintSpeeds[profile]; // Drive straight a bit in case we entered the intersection at an angle.
-uint16_t angintDelay = angintDelays[profile]; // Drive straight a bit in case we entered the intersection at an angle.
-uint16_t interSpeed = interSpeeds[profile];
-uint16_t interDelay = interDelays[profile]; // Intersection Motor Creep Run Delay
-uint16_t turnDelay = turnDelays[profile];
-uint16_t llbrakeoneSpeed = llbrakeoneSpeeds[profile]; // Learned Lap Braking Speed 1
-uint16_t llbrakeoneDelay = llbrakeoneDelays[profile]; // Duration at braked speed one
-uint16_t llbraketwoSpeed = llbraketwoSpeeds[profile]; // Learned Lap Braking Speed 2
-uint16_t llbraketwoDelay = llbraketwoDelays[profile]; // Duration at braked speed two
+uint16_t angintSpeed = 58; // Drive straight a bit in case we entered the intersection at an angle.
+uint16_t angintDelay = 40; // Drive straight a bit in case we entered the intersection at an angle.
+uint16_t interSpeed = 40;
+uint16_t interDelay = 90; // Intersection Motor Creep Run Delay
+uint16_t turnDelay = 200;
+uint16_t llbrakeoneSpeed = 70; // Learned Lap Braking Speed 1
+uint16_t llbrakeoneDelay = 37.5; // Duration at braked speed one
+uint16_t llbraketwoSpeed = 50; // Learned Lap Braking Speed 2
+uint16_t llbraketwoDelay = 50; // Duration at braked speed two
 
 // Other tuning values
 int16_t minSpeed = 0;
 // This is the speed the motors will run when centered on the line.
-uint16_t baseSpeed = maxSpeed;
+uint16_t baseSpeed;// = maxSpeed;
 // This is the speed the motors will run while doing line sensor calibration
 uint16_t calibrationSpeed = 60;
 
@@ -109,7 +96,52 @@ uint16_t derivative = 256; // coefficient of the D term * 256
 
 //// A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
-//const char go[] PROGMEM = "L16 cdegreg4";
+
+void selectProfile() {
+  profile = EEPROM.read(0); // store profile in non-volatile memory so it persists across power cycles
+  if ((profile > 8) || (profile < 0)) {
+    // If profile is invalid (first run it will be 255?) reset to 0
+    profile = 0;
+  }
+  // Fetch values for first run
+  maxSpeed = maxSpeeds[profile];
+  baseSpeed = maxSpeed;
+  turnSpeed = turnSpeeds[profile];
+
+  bool selection_made = false;
+
+  while (!selection_made) {
+    display.clear();
+    display.gotoXY(0, 0);
+    display.print(F("P"));
+    display.print(profile);
+    display.print(F(" in use"));
+    display.gotoXY(0, 1);
+    display.print(F("C:chg B:ok"));
+    display.gotoXY(0, 2);
+    display.print(F("Base "));
+    display.print(baseSpeed);
+    display.gotoXY(0, 3);
+    display.print(F("Turn "));
+    display.print(turnSpeed);
+    while(!(buttonB.getSingleDebouncedPress() || buttonC.getSingleDebouncedPress())) {
+      delay(10);
+    }
+    if (buttonB.isPressed()) {
+      selection_made = true;
+      buzzer.play(">a32");
+    } else {
+      profile++;
+      if (profile > 8) {profile = 0;} // constrain to 0-8
+      // Write updated profile to memory
+      EEPROM.write(0, profile);
+      // Update values used by rest of code
+      maxSpeed = maxSpeeds[profile];
+      baseSpeed = maxSpeed;
+      turnSpeed = turnSpeeds[profile];
+    }
+  }
+}
 
 // Sets up special characters in the LCD so that we can display
 // bar graphs.
@@ -138,9 +170,9 @@ void calibrateSensors()
 {
   display.clear();
   display.gotoXY(0, 1);
-  display.print(F("Calib in"));
+  display.print(F("Calibrate"));
   display.gotoXY(0, 2);
-  display.print(F("progress..."));
+  display.print(F("Sensors"));
 
   // Wait 1 second and then begin automatic sensor calibration
   // by rotating in place to sweep the sensors over the line
@@ -212,19 +244,20 @@ void setup()
   delay(1500);
 
   // Display selected factors and profiles:
-  display.clear();
-  display.gotoXY(0, 0);
-  display.print(F("Run "));
-  display.print(selected_run);
-  display.gotoXY(0, 1);
-  display.print(F("Speeds:"));
-  display.gotoXY(0, 2);
-  display.print(F("Base "));
-  display.print(baseSpeed);
-  display.gotoXY(0, 3);
-  display.print(F("Turn "));
-  display.print(turnSpeed);
-  delay(2500);
+//   display.clear();
+//   display.gotoXY(0, 0);
+//   display.print(F("Profile P"));
+//   display.print(profile);
+//   display.gotoXY(0, 1);
+//   display.print(F("Speeds:"));
+//   display.gotoXY(0, 2);
+//   display.print(F("Base "));
+//   display.print(baseSpeed);
+//   display.gotoXY(0, 3);
+//   display.print(F("Turn "));
+//   display.print(turnSpeed);
+//   delay(2500);
+  selectProfile();
   
   // Display battery voltage and wait for button press
   int bat = readBatteryMillivolts();
@@ -412,20 +445,14 @@ void display_path()
 void display_lap_time()
 {
     display.clear();
-    display.print("Solved!");
+    display.print(F("P"));
+    display.print(profile);
+    display.print(F(" in use"));
     display.gotoXY(0, 1);
-    display.print("Lap time:");
-    display.gotoXY(0, 2);
     display.print(get_timer_value_millis());
-    display.print("ms");
+    display.print(" ms");
     display.gotoXY(0, 3);
     display.print("B-continue");
-}
-
-// Function to test whether path matches our pre-programmed solution:
-bool maze_solution_is_correct(){
-  String pathFound = String(path);
-  return mazeSolution.equals(pathFound);
 }
 
 // This function decides which way to turn during the learning phase of
@@ -651,32 +678,15 @@ void loop()
     // Beep to show that we solved the maze.
     motors.setSpeeds(0, 0);
     buzzer.play(">>a32");
-
-    // Wait for the user to press a button, while displaying
-    // the solution.
-    if (!maze_solution_is_correct()){
-      delay(500);
-      display.clear();
-      display.gotoXY(0, 0);
-      display.print(F("WARNING"));
-      display.gotoXY(0, 1);
-      display.print(F("Found wrong"));
-      display.gotoXY(0, 2);
-      display.print(F("solution!!"));
-      display.gotoXY(0, 3);
-      display.print(F("ABORT TEST"));
-      buzzer.play("L8 cba#ag#4");
-      delay(5000);
-    }
     
     while(1)
     {
       // Show lap time and prompt to re-run for 4 seconds
       display_lap_time();
-      if (pause_wait_for_button_press(4000)) break;
+      if (pause_wait_for_button_press(5000)) break;
       // Show the path for 3 seconds
       display_path();
-      if (pause_wait_for_button_press(3000)) break;
+      if (pause_wait_for_button_press(2000)) break;
     }
     buzzer.play("L16 cdegreg4");
     display.clear();
