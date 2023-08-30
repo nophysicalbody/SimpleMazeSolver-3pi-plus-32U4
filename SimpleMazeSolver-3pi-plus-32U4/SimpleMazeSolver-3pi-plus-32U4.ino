@@ -33,22 +33,8 @@ Motors motors;
 #define NUM_SENSORS 5
 unsigned int lineSensorValues[NUM_SENSORS];
 
-/* 
- * * * * * * * * * * * * * * * * * * * * * * *
- * START SECTION: OPERATOR TUNING VALUES * * *
- * * * Operator to only select profile below *
- * * * * * * * * * * * * * * * * * * * * * * *
- */
-
-// This is now set inside setProfile function
+// This is now set using buttons on the robot.
 int profile;
-
-/*
- * * * * * * * * * * * * * * * * * * * * * * * *
- * END SECTION: OPERATOR TUNING VALUES * * * * * 
- * * * Operator to only select profile above * *
- * * * * * * * * * * * * * * * * * * * * * * * *
- */
 
 /* ******************* PROFILE: 0    1     2     3     4     5     6     7     8        */
 uint16_t maxSpeeds[9]        = {120, 120,  120,  130,  130,  130,  140,  140,  140};
@@ -66,13 +52,14 @@ uint16_t maxSpeed;// = maxSpeeds[profile];
 // This is the speed the motors will run while turning
 uint16_t turnSpeed;// = turnSpeeds[profile];
 
-uint16_t angintSpeed = 58; // Drive straight a bit in case we entered the intersection at an angle.
-uint16_t angintDelay = 40; // Drive straight a bit in case we entered the intersection at an angle.
+// Optimised values from screening model
+uint16_t angintSpeed = 61; // Drive straight a bit in case we entered the intersection at an angle.
+uint16_t angintDelay = 38; // Drive straight a bit in case we entered the intersection at an angle.
 uint16_t interSpeed = 40;
 uint16_t interDelay = 90; // Intersection Motor Creep Run Delay
-uint16_t turnDelay = 200;
-uint16_t llbrakeoneSpeed = 70; // Learned Lap Braking Speed 1
-uint16_t llbrakeoneDelay = 37.5; // Duration at braked speed one
+uint16_t turnDelay = 202;
+uint16_t llbrakeoneSpeed = 72; // Learned Lap Braking Speed 1
+uint16_t llbrakeoneDelay = 38; // Duration at braked speed one
 uint16_t llbraketwoSpeed = 50; // Learned Lap Braking Speed 2
 uint16_t llbraketwoDelay = 50; // Duration at braked speed two
 
@@ -92,7 +79,6 @@ uint16_t calibrationSpeed = 60;
 
 uint16_t proportional = 64; // coefficient of the P term * 256
 uint16_t derivative = 256; // coefficient of the D term * 256
-//uint16_t derivative = 0; // coefficient of the D term * 256
 
 //// A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
@@ -108,6 +94,7 @@ void selectProfile() {
   baseSpeed = maxSpeed;
   turnSpeed = turnSpeeds[profile];
 
+  // Variable for keeping track of whether the user has made a selection yet
   bool selection_made = false;
 
   while (!selection_made) {
@@ -117,24 +104,36 @@ void selectProfile() {
     display.print(profile);
     display.print(F(" in use"));
     display.gotoXY(0, 1);
-    display.print(F("C:chg B:ok"));
+    display.print(F("<A <BOK> C>"));
     display.gotoXY(0, 2);
     display.print(F("Base "));
     display.print(baseSpeed);
     display.gotoXY(0, 3);
     display.print(F("Turn "));
     display.print(turnSpeed);
-    while(!(buttonB.getSingleDebouncedPress() || buttonC.getSingleDebouncedPress())) {
+    while(!(buttonB.getSingleDebouncedPress() || buttonC.getSingleDebouncedPress() || buttonA.getSingleDebouncedPress())) {
       delay(10);
     }
     if (buttonB.isPressed()) {
       selection_made = true;
       buzzer.play(">a32");
+
     } else {
-      profile++;
-      if (profile > 8) {profile = 0;} // constrain to 0-8
+      // Beep
+      buzzer.play("a32");
+
+      // Increment profile and loop back around to 0 if needed
+      if (buttonC.isPressed()) {
+        profile++;
+      } else {
+        profile--;
+      }
+      if (profile > 8) {profile = 0;} // Overflow back to 0
+      if (profile < 0) {profile = 8;} // Underflow back to 0
+
       // Write updated profile to memory
       EEPROM.write(0, profile);
+
       // Update values used by rest of code
       maxSpeed = maxSpeeds[profile];
       baseSpeed = maxSpeed;
