@@ -37,8 +37,8 @@ unsigned int lineSensorValues[NUM_SENSORS];
 int profile;
 
 /* ******************* PROFILE: 0    1     2     3     4     5     6     7     8        */
-uint16_t maxSpeeds[9]        = {120, 120,  120,  130,  130,  130,  140,  140,  140};
-uint16_t turnSpeeds[9]       = {90,  95,   100,  90,   95,   100,  90,   95,   100};
+uint16_t maxSpeeds[9]        = {120, 120,  120,  125,  125,  125,  130,  130,  130};
+uint16_t turnSpeeds[9]       = {96,  99,   102,  96,   99,   102,  96,   99,   102};
 
 
 // This is the maximum speed the motors will be allowed to turn.
@@ -61,7 +61,7 @@ uint16_t turnDelay = 202;
 uint16_t llbrakeoneSpeed = 72; // Learned Lap Braking Speed 1
 uint16_t llbrakeoneDelay = 38; // Duration at braked speed one
 uint16_t llbraketwoSpeed = 50; // Learned Lap Braking Speed 2
-uint16_t llbraketwoDelay = 50; // Duration at braked speed two
+uint16_t llbraketwoDelay = 55; // Duration at braked speed two
 
 // Other tuning values
 int16_t minSpeed = 0;
