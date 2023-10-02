@@ -17,7 +17,6 @@
 
 // The following libraries will be needed by this demo
 #include <Pololu3piPlus32U4.h>
-#include <EEPROM.h>
 using namespace Pololu3piPlus32U4;
 
 OLED display;
@@ -29,28 +28,21 @@ LineSensors lineSensors;
 BumpSensors bumpSensors;
 Motors motors;
 
-
 #define NUM_SENSORS 5
 unsigned int lineSensorValues[NUM_SENSORS];
 
-// This is now set using buttons on the robot.
-int profile;
+/**********************************
+ * Configure robot settings here **
+ **********************************/
+// Factor A: must be a whole integer
+uint16_t maxSpeed = 125; // This is the speed the robot will run while driving
 
-/* ******************* PROFILE: 0    1     2     3     4     5     6     7     8        */
-uint16_t maxSpeeds[9]        = {120, 120,  120,  125,  125,  125,  130,  130,  130};
-uint16_t turnSpeeds[9]       = {96,  99,   102,  96,   99,   102,  96,   99,   102};
+// Factor B: must be a whole integer
+uint16_t turnSpeed = 96; // This is the speed the motors will run while turning
 
-
-// This is the maximum speed the motors will be allowed to turn.
-// A maxSpeed of 400 would let the motors go at top speed, but
-// the value of 200 here imposes a speed limit of 50%.
-// Note that making the 3pi+ go faster on a line following course
-// might involve more than just increasing this number; you will
-// often have to adjust the PID constants too for it to work well.
-uint16_t maxSpeed;// = maxSpeeds[profile];
-
-// This is the speed the motors will run while turning
-uint16_t turnSpeed;// = turnSpeeds[profile];
+/**********************************
+ **** End configuration section ***
+ **********************************/
 
 // Optimised values from screening model
 uint16_t angintSpeed = 61; // Drive straight a bit in case we entered the intersection at an angle.
@@ -66,7 +58,7 @@ uint16_t llbraketwoDelay = 55; // Duration at braked speed two
 // Other tuning values
 int16_t minSpeed = 0;
 // This is the speed the motors will run when centered on the line.
-uint16_t baseSpeed;// = maxSpeed;
+uint16_t baseSpeed = maxSpeed;
 // This is the speed the motors will run while doing line sensor calibration
 uint16_t calibrationSpeed = 60;
 
@@ -82,65 +74,6 @@ uint16_t derivative = 256; // coefficient of the D term * 256
 
 //// A couple of simple tunes, stored in program space.
 const char welcome[] PROGMEM = ">g32>>c32";
-
-void selectProfile() {
-  profile = EEPROM.read(0); // store profile in non-volatile memory so it persists across power cycles
-  if ((profile > 8) || (profile < 0)) {
-    // If profile is invalid (first run it will be 255?) reset to 0
-    profile = 0;
-  }
-  // Fetch values for first run
-  maxSpeed = maxSpeeds[profile];
-  baseSpeed = maxSpeed;
-  turnSpeed = turnSpeeds[profile];
-
-  // Variable for keeping track of whether the user has made a selection yet
-  bool selection_made = false;
-
-  while (!selection_made) {
-    display.clear();
-    display.gotoXY(0, 0);
-    display.print(F("P"));
-    display.print(profile);
-    display.print(F(" in use"));
-    display.gotoXY(0, 1);
-    display.print(F("<A <BOK> C>"));
-    display.gotoXY(0, 2);
-    display.print(F("Base "));
-    display.print(baseSpeed);
-    display.gotoXY(0, 3);
-    display.print(F("Turn "));
-    display.print(turnSpeed);
-    while(!(buttonB.getSingleDebouncedPress() || buttonC.getSingleDebouncedPress() || buttonA.getSingleDebouncedPress())) {
-      delay(10);
-    }
-    if (buttonB.isPressed()) {
-      selection_made = true;
-      buzzer.play(">a32");
-
-    } else {
-      // Beep
-      buzzer.play("a32");
-
-      // Increment profile and loop back around to 0 if needed
-      if (buttonC.isPressed()) {
-        profile++;
-      } else {
-        profile--;
-      }
-      if (profile > 8) {profile = 0;} // Overflow back to 0
-      if (profile < 0) {profile = 8;} // Underflow back to 0
-
-      // Write updated profile to memory
-      EEPROM.write(0, profile);
-
-      // Update values used by rest of code
-      maxSpeed = maxSpeeds[profile];
-      baseSpeed = maxSpeed;
-      turnSpeed = turnSpeeds[profile];
-    }
-  }
-}
 
 // Sets up special characters in the LCD so that we can display
 // bar graphs.
@@ -242,21 +175,19 @@ void setup()
   buzzer.play(">g32>>c32");
   delay(1500);
 
-  // Display selected factors and profiles:
-//   display.clear();
-//   display.gotoXY(0, 0);
-//   display.print(F("Profile P"));
-//   display.print(profile);
-//   display.gotoXY(0, 1);
-//   display.print(F("Speeds:"));
-//   display.gotoXY(0, 2);
-//   display.print(F("Base "));
-//   display.print(baseSpeed);
-//   display.gotoXY(0, 3);
-//   display.print(F("Turn "));
-//   display.print(turnSpeed);
-//   delay(2500);
-  selectProfile();
+  // Display selected factors:
+  display.clear();
+  display.gotoXY(0, 0);
+  display.print(F("   Robot"));
+  display.gotoXY(0, 1);
+  display.print(F(" Settings"));
+  display.gotoXY(0, 2);
+  display.print(F("A: "));
+  display.print(baseSpeed);
+  display.gotoXY(0, 3);
+  display.print(F("B: "));
+  display.print(turnSpeed);
+  delay(2500);
   
   // Display battery voltage and wait for button press
   int bat = readBatteryMillivolts();
@@ -444,9 +375,10 @@ void display_path()
 void display_lap_time()
 {
     display.clear();
-    display.print(F("P"));
-    display.print(profile);
-    display.print(F(" in use"));
+    display.print(F("A:"));
+    display.print(baseSpeed);
+    display.print(F(" B:"));
+    display.print(turnSpeed);
     display.gotoXY(0, 1);
     display.print(get_timer_value_millis());
     display.print(" ms");
