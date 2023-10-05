@@ -38,7 +38,7 @@ unsigned int lineSensorValues[NUM_SENSORS];
 uint16_t maxSpeed = 125; // This is the speed the robot will run while driving
 
 // Factor B: must be a whole integer
-uint16_t turnSpeed = 96; // This is the speed the motors will run while turning
+uint16_t turnSpeed = 99; // This is the speed the motors will run while turning
 
 /**********************************
  **** End configuration section ***
